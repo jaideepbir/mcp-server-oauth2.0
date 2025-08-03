@@ -1,0 +1,26 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+
+# macOS
+.DS_Store
+
+# Python tooling
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Data and uploads
+/data/uploads/
+
+# Env files
+.env
+.env.local
+
+# Diagrams output
+mcp_oauth2_opa_streamlit.png
