@@ -1,5 +1,5 @@
 # python
-from fastapi import FastAPI, Depends, HTTPException, Header, status
+from fastapi import FastAPI, Depends, HTTPException, Header, status, UploadFile, File
 from fastapi.responses import JSONResponse
 import httpx
 import os
@@ -13,6 +13,9 @@ JWT_AUDIENCE = os.environ.get("JWT_AUDIENCE", "mcp-audience")
 DATA_DIR = os.environ.get("DATA_DIR", "/data")
 
 app = FastAPI(title="MCP Server (DEV)")
+
+UPLOADS_DIR = os.path.join(DATA_DIR, "uploads")
+os.makedirs(UPLOADS_DIR, exist_ok=True)
 
 async def verify_bearer_token(authorization: str | None = Header(default=None)):
     if not authorization or not authorization.lower().startswith("bearer "):
@@ -75,3 +78,18 @@ async def opa_policy_eval(payload: dict, subject=Depends(verify_bearer_token)):
     if not allowed and isinstance(data, dict) and str(data.get("reason", "")).startswith("OPA unreachable"):
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=data)
     return {"allow": allowed, "rights": rights, "engine": data}
+
+@app.post("/mcp/upload")
+async def upload_file(file: UploadFile = File(...), subject=Depends(verify_bearer_token)):
+    # Basic OPA check for write if needed; for now allow admin only
+    resource = {"path": os.path.join(UPLOADS_DIR, file.filename)}
+    allowed, details = await opa_evaluate(OPA_URL, subject, "excel.write", resource)
+    if not allowed and subject.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Write not permitted")
+    dest_path = resource["path"]
+    content = await file.read()
+    with open(dest_path, "wb") as f:
+        f.write(content)
+    # Return relative path from DATA_DIR for downstream tool
+    rel = os.path.relpath(dest_path, DATA_DIR)
+    return {"relative_path": rel, "size": len(content)}
