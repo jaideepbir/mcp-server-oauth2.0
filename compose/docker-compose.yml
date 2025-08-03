@@ -1,0 +1,53 @@
+version: "3.9"
+services:
+  auth-server:
+    build: ../services/auth-server
+    image: mcp-auth-server:local
+    container_name: mcp-auth-server
+    ports:
+      - "8001:8000"
+    environment:
+      - AUTH_ISSUER_URL=http://auth-server:8000
+      - JWT_AUDIENCE=mcp-audience
+    networks: [mcpnet]
+  opa:
+    image: openpolicyagent/opa:latest
+    container_name: mcp-opa
+    command: ["run", "--server", "/policies"]
+    volumes:
+      - ../services/opa/policies:/policies:ro
+    ports:
+      - "8181:8181"
+    networks: [mcpnet]
+  mcp-server:
+    build: ../services/mcp-server
+    image: mcp-server:local
+    container_name: mcp-server
+    depends_on: [auth-server, opa]
+    environment:
+      - AUTH_ISSUER_URL=http://auth-server:8000
+      - JWT_AUDIENCE=mcp-audience
+      - OPA_URL=http://opa:8181
+      - DATA_DIR=/data
+    volumes:
+      - ../data:/data
+    ports:
+      - "9000:9000"
+    networks: [mcpnet]
+  streamlit:
+    build: ../services/streamlit
+    image: mcp-streamlit:local
+    container_name: mcp-streamlit
+    depends_on: [auth-server, mcp-server]
+    environment:
+      - AUTH_ISSUER_URL=http://auth-server:8000
+      - AUTH_CLIENT_ID=streamlit-client
+      - AUTH_REDIRECT_URI=http://localhost:8501/oauth/callback
+      - JWT_AUDIENCE=mcp-audience
+      - MCP_SERVER_URL=http://mcp-server:9000
+    ports:
+      - "8501:8501"
+    networks: [mcpnet]
+networks:
+  mcpnet:
+    driver: bridge
