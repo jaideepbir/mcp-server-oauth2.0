@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   auth-server:
     build: ../services/auth-server
@@ -11,7 +10,7 @@ services:
       - JWT_AUDIENCE=mcp-audience
     networks: [mcpnet]
   opa:
-    image: openpolicyagent/opa:latest
+    image: openpolicyagent/opa:0.67.1
     container_name: mcp-opa
     command: ["run", "--server", "/policies"]
     volumes:

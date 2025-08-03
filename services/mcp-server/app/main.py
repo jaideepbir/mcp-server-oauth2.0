@@ -1,5 +1,5 @@
 # python
-from fastapi import FastAPI, Depends, HTTPException, Header
+from fastapi import FastAPI, Depends, HTTPException, Header, status
 from fastapi.responses import JSONResponse
 import httpx
 import os
@@ -18,8 +18,13 @@ async def verify_bearer_token(authorization: str | None = Header(default=None)):
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(status_code=401, detail="Missing bearer token")
     token = authorization.split(" ", 1)[1]
-    # TODO: validate JWT via JWKS from AUTH_ISSUER_URL
-    return {"sub": "user-123", "role": "admin", "token": token}
+    role = "user"
+    if token == "admin-key":
+        role = "admin"
+    elif token == "demo-key":
+        role = "user"
+    # TODO: replace with real JWT validation later
+    return {"sub": f"{role}-subject", "role": role, "token": token}
 
 async def opa_allow(subject: dict, action: str, resource: dict):
     async with httpx.AsyncClient(timeout=5) as client:
@@ -40,17 +45,33 @@ async def health():
 @app.post("/mcp/tools/excel_csv_reader")
 async def excel_csv_reader(payload: dict, subject=Depends(verify_bearer_token)):
     source = payload.get("source")
+    if not source:
+        raise HTTPException(status_code=400, detail="Missing 'source' path relative to DATA_DIR")
     max_rows = int(payload.get("max_rows", 1000))
-    resource = {"path": os.path.join(DATA_DIR, source or "")}
-    allowed, _ = await opa_evaluate(OPA_URL, subject, "excel.read", resource)
+    resource = {"path": os.path.join(DATA_DIR, source)}
+    allowed, details = await opa_evaluate(OPA_URL, subject, "excel.read", resource)
+    # Rights if present in details
+    rights = None
+    if isinstance(details, dict):
+        rights = details.get("rights") or (details.get("result", {}) if isinstance(details.get("result"), dict) else {}).get("rights")
+    if not allowed and isinstance(details, dict) and str(details.get("reason", "")).startswith("OPA unreachable"):
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=details)
     if not allowed:
-        raise HTTPException(status_code=403, detail="Forbidden by policy")
-    rows = read_csv(resource["path"], max_rows=max_rows)
-    return {"rows": rows, "count": len(rows)}
+        raise HTTPException(status_code=403, detail=details)
+    path = resource["path"]
+    if not os.path.exists(path):
+        raise HTTPException(status_code=400, detail=f"File not found: {path}")
+    rows = read_csv(path, max_rows=max_rows)
+    return {"rights": rights, "rows": rows, "count": len(rows)}
 
 @app.post("/mcp/tools/opa_policy_eval")
 async def opa_policy_eval(payload: dict, subject=Depends(verify_bearer_token)):
     action = payload.get("action")
     resource = payload.get("resource", {})
     allowed, data = await opa_evaluate(OPA_URL, subject, action or "", resource)
-    return {"allow": allowed, "engine": data}
+    rights = None
+    if isinstance(data, dict):
+        rights = data.get("rights") or (data.get("result", {}) if isinstance(data.get("result"), dict) else {}).get("rights")
+    if not allowed and isinstance(data, dict) and str(data.get("reason", "")).startswith("OPA unreachable"):
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=data)
+    return {"allow": allowed, "rights": rights, "engine": data}
