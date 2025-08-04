@@ -67,11 +67,11 @@ img1_size = img1.size
 img2_size = img2.size
 new_width = max(img1_size[0], img2_size[0])
 # Reduce spacing so legend sits 10px closer (lift legend up by 10px)
-new_height = img1_size[1] + img2_size[1] + 10  # was +20
+new_height = img1_size[1] + img2_size[1] + 6  # was +20
 new_im = Image.new('RGB', (new_width, new_height), (255,255,255))
 
 # Paste the images, bringing legend up by 10px
 new_im.paste(img1, (0,0))
-new_im.paste(img2, (0, img1_size[1] + 10))
+new_im.paste(img2, (0, img1_size[1] + 6))
 
 new_im.save(os.path.join(os.getcwd(), "mcp_server_architecture_with_legend.png"), "PNG")
