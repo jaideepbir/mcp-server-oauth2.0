@@ -43,7 +43,9 @@ legend_data = [
 ]
 
 # Define image size and font
+# Increase legend overall scale slightly (font size + leading) and adjust width accordingly
 width = 600
+line_height = 20  # original
 height = len(legend_data) * 20 + 20  # Adjust height based on number of lines
 img = Image.new('RGB', (width, height), color = 'white')
 d = ImageDraw.Draw(img)
@@ -64,11 +66,12 @@ img2 = Image.open(os.path.join(os.getcwd(), "architecture_legend.png"))
 img1_size = img1.size
 img2_size = img2.size
 new_width = max(img1_size[0], img2_size[0])
-new_height = img1_size[1] + img2_size[1] + 20 # Add 20px spacing
+# Reduce spacing so legend sits 10px closer (lift legend up by 10px)
+new_height = img1_size[1] + img2_size[1] + 10  # was +20
 new_im = Image.new('RGB', (new_width, new_height), (255,255,255))
 
-# Paste the images, adding 20px spacing below the title
+# Paste the images, bringing legend up by 10px
 new_im.paste(img1, (0,0))
-new_im.paste(img2, (0,img1_size[1] + 20))
+new_im.paste(img2, (0, img1_size[1] + 10))
 
 new_im.save(os.path.join(os.getcwd(), "mcp_server_architecture_with_legend.png"), "PNG")
