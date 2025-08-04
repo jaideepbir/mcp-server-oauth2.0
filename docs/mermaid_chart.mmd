@@ -1,0 +1,83 @@
+%%{init: { "flowchart": { "useMaxWidth": true, "htmlLabels": true, "padding": 8, "nodeSpacing": 20, "rankSpacing": 30 }, "themeVariables": { "background": "#ffffff" } }}%%
+flowchart LR
+%% Direction and spacing
+classDef cloud fill:#ffa500,stroke:#333,stroke-width:2px,color:#111; %% orange instead of pink
+classDef user fill:#e6e0ff,stroke:#333,stroke-width:1.5px,color:#111;
+classDef legend fill:#fff8dc,stroke:#333,stroke-width:1.5px,color:#111;
+
+%% Legend with numbered arrows
+subgraph LEGEND[Legend]
+class LEGEND legend
+L1["1 — HTTP Request"]
+L2["2 — Container (invokes app)"]
+L3["3 — DB Queries"]
+L4["4 — DB Responses"]
+L5["5 — HTTPS Response"]
+end
+
+%% User
+A[User Request]:::user
+
+%% Services inside VPC inside GCP Project
+subgraph GCP_Project[GCP Project 🏗️]
+direction TB
+
+subgraph VPC[VPC 🔷]
+direction TB
+class VPC vpcStyle
+
+%% Service A nested: Cloud Run (Container -> App)
+subgraph SVC_A[Cloud Run Service A 🌀]
+direction LR
+A1_Container[Container A 🧱]:::cloud
+AAPP[FastAPI App 🚀]
+A1_Container --> AAPP
+end
+
+%% Service B nested
+subgraph SVC_B[Cloud Run Service B 🌀]
+direction LR
+B1_Container[Container B 🧱]:::cloud
+BAPP[Background Worker ⚙️]
+B1_Container --> BAPP
+end
+
+%% Service C nested
+subgraph SVC_C[Cloud Run Service C 🌀]
+direction LR
+C1_Container[Container C 🧱]:::cloud
+CAPP[Webhook Handler 🔔]
+C1_Container --> CAPP
+end
+
+%% Database
+DB[(Cloud SQL 🗄️)]:::cloud
+
+end
+end
+
+%% Ingress from user to containers (1)
+A --> A1_Container:::cloud
+A --> B1_Container:::cloud
+A --> C1_Container:::cloud
+
+%% App to DB queries (3) and responses (4)
+AAPP -->|3: Queries| DB
+BAPP -->|3: Queries| DB
+CAPP -->|3: Queries| DB
+
+DB -->|4: Responses| AAPP
+DB -->|4: Responses| BAPP
+DB -->|4: Responses| CAPP
+
+%% Responses back to user (5)
+AAPP -->|5: HTTPS Response| A
+BAPP -->|5: HTTPS Response| A
+CAPP -->|5: HTTPS Response| A
+
+%% Visual separators for layout (spacers)
+A -.-> LEGEND
+
+%% Styling
+class SVC_A,SVC_B,SVC_C,DB cloud;
+classDef vpcStyle fill:#ffffff,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5,color:#111; %% dotted outline, no transparency

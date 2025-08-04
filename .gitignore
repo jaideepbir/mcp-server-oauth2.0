@@ -24,3 +24,6 @@ venv/
 
 # Diagrams output
 mcp_oauth2_opa_streamlit.png
+
+# Docs
+checkpoint.md
