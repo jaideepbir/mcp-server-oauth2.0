@@ -1,0 +1,10 @@
+| Step | Description |
+|---|---|
+| 1 | User sends HTTP/S request to Cloud Run service |
+| 2 | Cloud Run routes HTTPS traffic to Streamlit Frontend |
+| 3 | Streamlit initiates OAuth2 authentication request to Auth Server |
+| 4 | Auth Server returns ID and Access Tokens (JWT) to Streamlit |
+| 5 | Streamlit makes tool call to MCP Server with Bearer Token |
+| 6 | MCP Server queries OPA Policy Engine for authorization |
+| 7 | OPA returns policy decision (Allow/Deny) to MCP Server |
+| 8 | MCP Server reads/writes data from/to GCS based on policy |
