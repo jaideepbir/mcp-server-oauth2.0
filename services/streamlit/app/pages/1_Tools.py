@@ -7,7 +7,10 @@ import pandas as pd
 st.set_page_config(page_title="MCP Tools", layout="wide")
 
 # Resolve MCP server URL for both Docker (service DNS) and local dev
-MCP_SERVER_URL = os.environ.get("MCP_SERVER_URL") or os.environ.get("VITE_MCP_SERVER_URL") or "http://localhost:9000"
+MCP_SERVER_URL = os.environ.get("MCP_SERVER_URL") or os.environ.get("VITE_MCP_SERVER_URL")
+if not MCP_SERVER_URL:
+    st.error("MCP_SERVER_URL environment variable not set. Please configure it.")
+    st.stop()
 
 st.title("MCP Tools")
 
@@ -20,9 +23,10 @@ st.header("Excel / CSV Reader")
 # Default files list
 default_files = [
     "public/sample.csv",
+    "protected/protected.csv",
 ]
 
-mode = st.selectbox("Select source", ["Default", "Upload"], index=0)
+mode = st.selectbox("Select source", ["Default", "Protected", "Upload"], index=0)
 
 # Prepare variables used later
 selected_source = None
@@ -40,7 +44,11 @@ if mode == "Default":
             try:
                 resp = requests.post(f"{MCP_SERVER_URL}/mcp/tools/excel_csv_reader", json={**payload}, headers=headers, timeout=30)
             except requests.RequestException as e:
-                st.error(f"Request failed: {e}")
+                # Check if the error is related to permissions for protected files
+                if "protected" in selected_source and "user" in bearer and "admin-key" not in bearer:
+                    st.error("User does not have read permissions on Protected file.")
+                else:
+                    st.error(f"Request failed: {e}")
                 resp = None
         st.divider(); st.subheader("Result")
         if resp and resp.ok:
@@ -78,14 +86,16 @@ else:
             if up_resp and up_resp.ok:
                 up_info = up_resp.json()
                 selected_source = up_info.get("relative_path")  # e.g., uploads/<name>
-                payload = {"source": selected_source, "max_rows": int(max_rows)}
+                owner = bearer.split("Bearer ")[1].split("-")[0] if "Bearer " in bearer and "-" in bearer else "demo"
+                payload = {"source": selected_source, "max_rows": int(max_rows), "owner": owner}
                 with st.spinner("Reading uploaded file..."):
                     try:
                         read_resp = requests.post(f"{MCP_SERVER_URL}/mcp/tools/excel_csv_reader", json={**payload}, headers=headers, timeout=30)
                     except requests.RequestException as e:
-                        st.error(f"Read failed: {e}")
+                        st.error(f"Custom Error: Read failed: {e}")
                         read_resp = None
-                st.divider(); st.subheader("Result")
+                st.divider()
+                st.subheader("Result")
                 if read_resp and read_resp.ok:
                     data = read_resp.json(); rows = data.get("rows", [])
                     tab_table, tab_json = st.tabs(["Table", "JSON"])
@@ -124,7 +134,7 @@ with colsa[1]:
     resource_path = st.text_input("Resource Path", value=resource_default)
 if st.button("Evaluate Policy"):
     headers = {"Authorization": bearer} if bearer else {}
-    payload = {"action": action, "resource": {"path": resource_path}}
+    payload = {"action": action, "resource": {"path": resource_path, "owner": bearer.split("Bearer ")[1].split("-")[0] if "Bearer " in bearer else ""}}
     try:
         resp = requests.post(f"{MCP_SERVER_URL}/mcp/tools/opa_policy_eval", json=payload, headers=headers, timeout=30)
     except requests.RequestException as e:

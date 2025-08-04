@@ -22,12 +22,17 @@ async def verify_bearer_token(authorization: str | None = Header(default=None)):
         raise HTTPException(status_code=401, detail="Missing bearer token")
     token = authorization.split(" ", 1)[1]
     role = "user"
+    sub = "" # Initialize sub
     if token == "admin-key":
         role = "admin"
+        sub = "admin-subject"
     elif token == "demo-key":
         role = "user"
+        sub = "demo" # Set sub to "demo" for demo-key to match streamlit's owner logic
+    else:
+        sub = f"{role}-subject" # Default for other roles/tokens
     # TODO: replace with real JWT validation later
-    return {"sub": f"{role}-subject", "role": role, "token": token}
+    return {"sub": sub, "role": role, "token": token}
 
 async def opa_allow(subject: dict, action: str, resource: dict):
     async with httpx.AsyncClient(timeout=5) as client:
@@ -47,12 +52,16 @@ async def health():
 
 @app.post("/mcp/tools/excel_csv_reader")
 async def excel_csv_reader(payload: dict, subject=Depends(verify_bearer_token)):
+    print(f"excel_csv_reader: Received request with payload: {payload} and subject: {subject}")
     source = payload.get("source")
     if not source:
         raise HTTPException(status_code=400, detail="Missing 'source' path relative to DATA_DIR")
     max_rows = int(payload.get("max_rows", 1000))
-    resource = {"path": os.path.join(DATA_DIR, source)}
+    owner = payload.get("owner", "")
+    resource = {"path": os.path.join(DATA_DIR, source), "owner": owner}
+    print(f"excel_csv_reader: Evaluating OPA for action 'excel.read' on resource: {resource}")
     allowed, details = await opa_evaluate(OPA_URL, subject, "excel.read", resource)
+    print(f"excel_csv_reader: OPA evaluation result: allowed={allowed}, details={details}")
     # Rights if present in details
     rights = None
     if isinstance(details, dict):
@@ -64,7 +73,9 @@ async def excel_csv_reader(payload: dict, subject=Depends(verify_bearer_token)):
     path = resource["path"]
     if not os.path.exists(path):
         raise HTTPException(status_code=400, detail=f"File not found: {path}")
+    print(f"excel_csv_reader: Reading CSV from path: {path}")
     rows = read_csv(path, max_rows=max_rows)
+    print(f"excel_csv_reader: Successfully read {len(rows)} rows.")
     return {"rights": rights, "rows": rows, "count": len(rows)}
 
 @app.post("/mcp/tools/opa_policy_eval")
@@ -81,15 +92,19 @@ async def opa_policy_eval(payload: dict, subject=Depends(verify_bearer_token)):
 
 @app.post("/mcp/upload")
 async def upload_file(file: UploadFile = File(...), subject=Depends(verify_bearer_token)):
-    # Basic OPA check for write if needed; for now allow admin only
-    resource = {"path": os.path.join(UPLOADS_DIR, file.filename)}
+    print(f"upload_file: Received upload request for file: {file.filename} with subject: {subject}")
+    dest_path = os.path.join(UPLOADS_DIR, file.filename)
+    owner = subject.get("sub", "") # Get owner from subject
+    resource = {"path": dest_path, "owner": owner}
+    print(f"upload_file: Evaluating OPA for action 'excel.write' on resource: {resource}")
     allowed, details = await opa_evaluate(OPA_URL, subject, "excel.write", resource)
-    if not allowed and subject.get("role") != "admin":
-        raise HTTPException(status_code=403, detail="Write not permitted")
-    dest_path = resource["path"]
+    print(f"upload_file: OPA evaluation result: allowed={allowed}, details={details}")
+    if not allowed: # Removed the redundant subject.get("role") != "admin" check as OPA should handle it
+        raise HTTPException(status_code=403, detail=details) # Return OPA details for better debugging
     content = await file.read()
     with open(dest_path, "wb") as f:
         f.write(content)
+    print(f"upload_file: Successfully wrote file to: {dest_path}")
     # Return relative path from DATA_DIR for downstream tool
     rel = os.path.relpath(dest_path, DATA_DIR)
     return {"relative_path": rel, "size": len(content)}
