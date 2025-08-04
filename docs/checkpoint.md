@@ -5,7 +5,7 @@ Summary:
 - Successfully used `write_to_file` to update `authz.rego` with new authorization rules:
   - Changed "Write allowed for admin only" to "Write allowed for all users" for Excel write actions.
   - Added a condition for users to read their own uploads by checking `input.subject.owner == input.resource.owner`.
-  - Added a new rule for "Protected files require admin read access" to restrict access to `/data/protected/` resources.
+  - Added a new rule for "Protected files require admin read access" to `/data/protected/` resources.
 
 ---
 Timestamp: 8/3/25, 7:09:34 PM
@@ -145,3 +145,81 @@ Summary:
 Timestamp: 8/3/2025, 9:37:23 PM
 Summary:
 - Resolved "No response from server for read" and upload button freezing by adding detailed logging to `projects/mcp-server-oauth2.0/services/mcp-server/app/main.py` and ensuring the `owner` is correctly passed for OPA evaluation in the `upload_file` endpoint. The user confirmed the issue is resolved.
+
+---
+Timestamp: 8/3/2025, 9:37:40 PM
+Summary:
+- Resolved "No response from server for read" and upload button freezing by adding detailed logging to `projects/mcp-server-oauth2.0/services/mcp-server/app/main.py` and ensuring the `owner` is correctly passed for OPA evaluation in the `upload_file` endpoint. The user confirmed the issue is resolved.
+
+---
+Timestamp: 8/3/2025, 9:38:11 PM
+Summary:
+- Resolved "No response from server for read" and upload button freezing by adding detailed logging to `projects/mcp-server-oauth2.0/services/mcp-server/app/main.py` and ensuring the `owner` is correctly passed for OPA evaluation in the `upload_file` endpoint. The user confirmed the issue is resolved.
+
+---
+Timestamp: 8/3/2025, 9:43:27 PM
+Summary:
+- Resolved "No response from server for read" and upload button freezing by adding detailed logging to `projects/mcp-server-oauth2.0/services/mcp-server/app/main.py` and ensuring the `owner` is correctly passed for OPA evaluation in the `upload_file` endpoint. The user confirmed the issue is resolved.
+
+---
+Timestamp: 8/3/2025, 9:47:47 PM
+Summary:
+- Resolved "No response from server for read" and upload button freezing by adding detailed logging to `projects/mcp-server-oauth2.0/services/mcp-server/app/main.py` and ensuring the `owner` is correctly passed for OPA evaluation in the `upload_file` endpoint. The user confirmed the issue is resolved.
+
+---
+Timestamp: 8/3/2025, 9:50:42 PM
+Summary:
+- Resolved "No response from server for read" and upload button freezing by adding detailed logging to `projects/mcp-server-oauth2.0/services/mcp-server/app/main.py` and ensuring the `owner` is correctly passed for OPA evaluation in the `upload_file` endpoint. The user confirmed the issue is resolved.
+
+---
+Timestamp: 8/3/2025, 9:59:23 PM
+Summary:
+- Resolved "No response from server for read" and upload button freezing by adding detailed logging to `projects/mcp-server-oauth2.0/services/mcp-server/app/main.py` and ensuring the `owner` is correctly passed for OPA evaluation in the `upload_file` endpoint. The user confirmed the issue is resolved.
+
+---
+Timestamp: 8/3/2025, 10:05:04 PM
+Summary:
+- Resolved "No response from server for read" and upload button freezing by adding detailed logging to `projects/mcp-server-oauth2.0/services/mcp-server/app/main.py` and ensuring the `owner` is correctly passed for OPA evaluation in the `upload_file` endpoint. The user confirmed the issue is resolved.
+
+---
+Timestamp: 8/3/2025, 10:08:09 PM
+Summary:
+- Resolved "No response from server for read" and upload button freezing by adding detailed logging to `projects/mcp-server-oauth2.0/services/mcp-server/app/main.py` and ensuring the `owner` is correctly passed for OPA evaluation in the `upload_file` endpoint. The user confirmed the issue is resolved.
+
+---
+Timestamp: 8/3/2025, 10:25:48 PM
+Summary:
+- Resolved "No response from server for read" and upload button freezing by adding detailed logging to `projects/mcp-server-oauth2.0/services/mcp-server/app/main.py` and ensuring the `owner` is correctly passed for OPA evaluation in the `upload_file` endpoint. The user confirmed the issue is resolved.
+
+---
+Timestamp: 8/3/2025, 10:35:33 PM
+Summary:
+- Resolved "No response from server for read" and upload button freezing by adding detailed logging to `projects/mcp-server-oauth2.0/services/mcp-server/app/main.py` and ensuring the `owner` is correctly passed for OPA evaluation in the `upload_file` endpoint. The user confirmed the issue is resolved.
+
+---
+Timestamp: 8/3/2025, 10:37:20 PM
+Summary:
+- Resolved "No response from server for read" and upload button freezing by adding detailed logging to `projects/mcp-server-oauth2.0/services/mcp-server/app/main.py` and ensuring the `owner` is correctly passed for OPA evaluation in the `upload_file` endpoint. The user confirmed the issue is resolved.
+
+---
+Timestamp: 8/3/2025, 10:39:57 PM
+Summary:
+- Resolved "No response from server for read" and upload button freezing by adding detailed logging to `projects/mcp-server-oauth2.0/services/mcp-server/app/main.py` and ensuring the `owner` is correctly passed for OPA evaluation in the `upload_file` endpoint. The user confirmed the issue is resolved.
+
+---
+Timestamp: 8/3/2025, 10:50:42 PM
+Summary:
+- Resolved "No response from server for read" and upload button freezing by adding detailed logging to `projects/mcp-server-oauth2.0/services/mcp-server/app/main.py` and ensuring the `owner` is correctly passed for OPA evaluation in the `upload_file` endpoint. The user confirmed the issue is resolved.
+
+---
+Timestamp: 8/3/2025, 10:55:33 PM
+Summary:
+- Resolved "No response from server for read" and upload button freezing by adding detailed logging to `projects/mcp-server-oauth2.0/services/mcp-server/app/main.py` and ensuring the `owner` is correctly passed for OPA evaluation in the `upload_file` endpoint. The user confirmed the issue is resolved.
+
+---
+Timestamp: 8/3/2025, 11:14:13 PM
+Summary:
+- Added the architecture diagram to the top of the README.
+- Added TODOs to the README.
+
+---
