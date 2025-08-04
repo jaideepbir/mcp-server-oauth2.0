@@ -1,5 +1,7 @@
 # MCP Server with OAuth2.0, OPA, and Streamlit Frontend
 
+![MCP Server Architecture](docs/mcp_server_architecture.png)
+
 This project provides a Model Context Protocol (MCP) server integrated with OAuth2.0 for authentication, Open Policy Agent (OPA) for authorization, and a Streamlit frontend for user interaction. The system is designed to demonstrate secure access to data and tools based on user roles and data ownership.
 
 ## Project Structure
@@ -67,3 +69,8 @@ The "Chat" page provides an LLM integration with MCP tool-calling capabilities.
 ## Development
 
 Refer to the `prd.md` and `docs/` directory for more detailed information on architecture, functional requirements, and development guidelines.
+
+## TODO
+
+- [ ] TF based plan and deploy template
+- [ ] GHA workflow for build and deploy
