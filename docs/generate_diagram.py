@@ -1,77 +1,98 @@
 from diagrams import Diagram, Cluster, Node, Edge
 from diagrams.gcp.compute import Run
 from diagrams.gcp.storage import GCS
-from diagrams.gcp.network import VirtualPrivateCloud
 from diagrams.onprem.client import User
-from PIL import Image, ImageDraw, ImageFont
-import os
+from diagrams.onprem.container import Docker
 
 with Diagram("MCP Server Architecture on GCP Cloud Run", show=False, filename="mcp_server_architecture", direction="LR"):
     user = User("User")
-    vpc = VirtualPrivateCloud("VPC Network")
-    
-    with Cluster("GCP Services"):
-        auth_server = Run("Auth Server")
-        mcp_server = Run("MCP Server")
-        opa = Node("OPA Policy Engine")
-        streamlit_app = Run("Streamlit Frontend")
+
+    with Cluster("GCP Cloud Run Deployment"):
+        cloud_run = Run("Cloud Run Service")
+        
+        with Cluster("Docker Containers"):
+            auth_server_docker = Docker("Auth Server")
+            mcp_server_docker = Docker("MCP Server")
+            opa_docker = Node("OPA Policy Engine")  # Using generic Node for OPA
+            streamlit_app_docker = Docker("Streamlit Frontend")
+
         storage = GCS("Data Storage (GCS)")
 
-        # User to Streamlit Frontend
-        user >> Edge(label="1") >> streamlit_app
+    # User to Cloud Run
+    user >> Edge(label="1") >> cloud_run
+    cloud_run >> Edge(label="2") >> streamlit_app_docker
 
-        # Authentication Flow
-        streamlit_app >> Edge(label="2") >> auth_server
-        auth_server << Edge(label="3") << streamlit_app
+    # Authentication Flow
+    streamlit_app_docker >> Edge(label="3") >> auth_server_docker
+    auth_server_docker << Edge(label="4") << streamlit_app_docker
 
-        # Tool Invocation Flow
-        streamlit_app >> Edge(label="4") >> mcp_server
-        mcp_server >> Edge(label="5") >> opa
-        opa >> Edge(label="6") >> mcp_server
-        mcp_server >> Edge(label="7") >> storage
+    # Tool Invocation Flow
+    streamlit_app_docker >> Edge(label="5") >> mcp_server_docker
+    mcp_server_docker >> Edge(label="6") >> opa_docker
+    opa_docker >> Edge(label="7") >> mcp_server_docker
+    mcp_server_docker >> Edge(label="8") >> storage
 
-# Create Legend Image
-legend_data = [
-    "1. User sends HTTP/S request to Cloud Run service",
-    "2. Cloud Run routes HTTPS traffic to Streamlit Frontend",
-    "3. Streamlit initiates OAuth2 authentication request to Auth Server",
-    "4. Auth Server returns ID and Access Tokens (JWT) to Streamlit",
-    "5. Streamlit makes tool call to MCP Server with Bearer Token",
-    "6. MCP Server queries OPA Policy Engine for authorization",
-    "7. OPA returns policy decision (Allow/Deny) to MCP Server",
-    "8. MCP Server reads/writes data from/to GCS based on policy"
-]
+# Legend and combined image generation
+try:
+    from PIL import Image, ImageDraw, ImageFont
+    import os, sys
 
-# Define image size and font
-# Increase legend overall scale slightly (font size + leading) and adjust width accordingly
-width = 600
-line_height = 20  # original
-height = len(legend_data) * 20 + 20  # Adjust height based on number of lines
-img = Image.new('RGB', (width, height), color = 'white')
-d = ImageDraw.Draw(img)
-font = ImageFont.truetype("/Library/Fonts/Arial.ttf", 14) # Replace with a valid font path
+    legend_data = [
+        "1. User sends HTTP/S request to Cloud Run service",
+        "2. Cloud Run routes HTTPS traffic to Streamlit Frontend",
+        "3. Streamlit initiates OAuth2 authentication request to Auth Server",
+        "4. Auth Server returns ID and Access Tokens (JWT) to Streamlit",
+        "5. Streamlit makes tool call to MCP Server with Bearer Token",
+        "6. MCP Server queries OPA Policy Engine for authorization",
+        "7. OPA returns policy decision (Allow/Deny) to MCP Server",
+        "8. MCP Server reads/writes data from/to GCS based on policy",
+    ]
 
-# Draw the text
-y_offset = 10
-for i, line in enumerate(legend_data):
-    d.text((10, y_offset), line, fill=(0, 0, 0), font=font)
-    y_offset += 20
+    # Legend image sizing
+    width = 880
+    line_height = 28
+    padding_top = 16
+    padding_bottom = 16
+    height = padding_top + len(legend_data) * line_height + padding_bottom
 
-img.save(os.path.join(os.getcwd(), "architecture_legend.png"))
+    img = Image.new("RGB", (width, height), color="white")
+    d = ImageDraw.Draw(img)
 
-# Combine Images
-import os
-img1 = Image.open(os.path.join(os.getcwd(), "mcp_server_architecture.png"))
-img2 = Image.open(os.path.join(os.getcwd(), "architecture_legend.png"))
-img1_size = img1.size
-img2_size = img2.size
-new_width = max(img1_size[0], img2_size[0])
-# Reduce spacing so legend sits 10px closer (lift legend up by 10px)
-new_height = img1_size[1] + img2_size[1] + 6  # was +20
-new_im = Image.new('RGB', (new_width, new_height), (255,255,255))
+    # font fallback
+    try:
+        font = ImageFont.truetype("/Library/Fonts/Arial.ttf", 16)
+    except Exception:
+        font = ImageFont.load_default()
 
-# Paste the images, bringing legend up by 10px
-new_im.paste(img1, (0,0))
-new_im.paste(img2, (0, img1_size[1] + 6))
+    # draw legend
+    x = 12
+    y = padding_top
+    for line in legend_data:
+        d.text((x, y), line, fill=(0, 0, 0), font=font)
+        y += line_height
 
-new_im.save(os.path.join(os.getcwd(), "mcp_server_architecture_with_legend.png"), "PNG")
+    # Save legend alongside diagram outputs (repo root or current working dir)
+    legend_path = os.path.join(os.getcwd(), "architecture_legend.png")
+    img.save(legend_path)
+
+    # Combine base diagram with legend, with reduced gap
+    base_path = os.path.join(os.getcwd(), "mcp_server_architecture.png")
+    if os.path.exists(base_path):
+        img1 = Image.open(base_path).convert("RGB")
+        img2 = Image.open(legend_path).convert("RGB")
+
+        new_width = max(img1.width, img2.width)
+        # Bring legend up by an additional 15 lines (total ~20 lines up)
+        # Negative spacing overlaps legend upward relative to diagram.
+        spacing = -5 * line_height
+        new_height = img1.height + max(0, spacing) + img2.height
+
+        new_im = Image.new("RGB", (new_width, new_height), (255, 255, 255))
+        new_im.paste(img1, (0, 0))
+        legend_x = max(0, (new_width - img2.width)//2 + int(0.15 * new_width))
+        new_im.paste(img2, (legend_x, img1.height + spacing))
+        out_path = os.path.join(os.getcwd(), "mcp_server_architecture_with_legend.png")
+        new_im.save(out_path, "PNG")
+except Exception as e:
+    # Soft-fail so diagram still generates even if PIL/graphviz not available
+    sys.stderr.write(f"[legend-combine] Skipped due to error: {e}\n")
